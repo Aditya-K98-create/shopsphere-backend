@@ -12,8 +12,34 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class BackendApplication {
 
 	public static void main(String[] args) {
+		validateRailwayDatabaseConfig();
 		configureDatabaseFromHostedUrl();
 		SpringApplication.run(BackendApplication.class, args);
+	}
+
+	private static void validateRailwayDatabaseConfig() {
+		boolean runningOnRailway = firstPresent(
+				System.getenv("RAILWAY_ENVIRONMENT_ID"),
+				System.getenv("RAILWAY_SERVICE_ID"),
+				System.getenv("RAILWAY_PROJECT_ID")) != null;
+
+		if (!runningOnRailway) {
+			return;
+		}
+
+		boolean hasDatabaseConfig = firstPresent(
+				System.getenv("SPRING_DATASOURCE_URL"),
+				System.getenv("DATABASE_JDBC_URL"),
+				System.getenv("DATABASE_URL"),
+				System.getenv("POSTGRES_URL"),
+				System.getenv("PGHOST")) != null;
+
+		if (!hasDatabaseConfig) {
+			throw new IllegalStateException(
+					"Missing Railway database configuration. Add DATABASE_URL, DATABASE_JDBC_URL, "
+							+ "SPRING_DATASOURCE_URL, or Railway Postgres variables PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD "
+							+ "to the shopsphere-backend service.");
+		}
 	}
 
 	private static void configureDatabaseFromHostedUrl() {
